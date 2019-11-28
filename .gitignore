@@ -1,0 +1,15 @@
+*.log
+*.db
+.idea
+.DS_Store
+*.orig
+*.user
+*.stash
+.vscode
+.history
+dist/*
+.vs/*
+*.opendb
+x64/
+ffplayer/x64
+*.mp4
