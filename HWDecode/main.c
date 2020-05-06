@@ -11,6 +11,23 @@
 
 #include "SDL.h"
 
+
+#define LOG_BUF_PREFIX_SIZE 512
+#define LOG_BUF_SIZE 1024
+static char logBufPrefix[LOG_BUF_PREFIX_SIZE];
+static char logBuffer[LOG_BUF_SIZE];
+
+
+typedef void(*ffmpeg_log_callback)(void *ptr, int level, const char *fmt, va_list vl);
+
+
+static void log_callback_null(void *ptr, int level, const char *fmt, va_list vl) {
+	int cnt;
+	cnt = snprintf(logBufPrefix, LOG_BUF_PREFIX_SIZE, "%s", fmt);
+	cnt = vsnprintf(logBuffer, LOG_BUF_SIZE, logBufPrefix, vl);
+	fprintf(stdout, "%s", logBuffer);
+}
+
 static AVBufferRef *hw_device_ctx = NULL;
 static enum AVPixelFormat hw_pix_fmt;
 static FILE *output_file = NULL;
@@ -49,7 +66,8 @@ static enum AVPixelFormat get_hw_format(AVCodecContext *ctx,
 	}
 
 	fprintf(stderr, "Failed to get HW surface format.\n");
-	return AV_PIX_FMT_NONE;
+	return avcodec_default_get_format(ctx, pix_fmts);
+	//return AV_PIX_FMT_NONE;
 }
 
 static int decode_write(AVCodecContext *avctx, AVPacket *packet)
@@ -149,6 +167,14 @@ static int decode_write(AVCodecContext *avctx, AVPacket *packet)
 
 int main(int argc, char *argv[])
 {
+
+
+	/* Init ffmpeg log */
+	ffmpeg_log_callback pcb_log = log_callback_null;
+	av_log_set_level(AV_LOG_DEBUG);
+	av_log_set_flags(AV_LOG_SKIP_REPEATED);
+	av_log_set_callback(pcb_log);
+
 	AVFormatContext *input_ctx = NULL;
 	AVDictionaryEntry *tag = NULL;
 	int video_stream, audio_stream, ret;
@@ -175,6 +201,8 @@ int main(int argc, char *argv[])
 		//return -1;
 	}
 
+	int t = av_hwdevice_iterate_types(AV_HWDEVICE_TYPE_NONE);
+
 	char* name = av_hwdevice_get_type_name(AV_HWDEVICE_TYPE_CUDA);
 	type = av_hwdevice_find_type_by_name(name);
 	if (type == AV_HWDEVICE_TYPE_NONE) {
@@ -187,7 +215,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* open the input file */
-	if (avformat_open_input(&input_ctx, "h:/test2.mp4", NULL, NULL) != 0) {
+	if (avformat_open_input(&input_ctx, "h:/3b_(2)^1.mp4", NULL, NULL) != 0) {
 		fprintf(stderr, "Cannot open input file '%s'\n", argv[2]);
 		return -1;
 	}
